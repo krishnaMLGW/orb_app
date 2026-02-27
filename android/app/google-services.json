@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "618030859014",
+    "project_id": "orb-app-b04b6",
+    "storage_bucket": "orb-app-b04b6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:618030859014:android:e41bf027f2f72925881487",
+        "android_client_info": {
+          "package_name": "com.example.orb_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIGPzrHXsbo_oR_wg0Mrdw5yT0ZexediE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
