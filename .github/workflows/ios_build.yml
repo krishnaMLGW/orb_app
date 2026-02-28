@@ -10,16 +10,16 @@ jobs:
         with:
           channel: 'stable'
       
+      - name: "Fetch Dependencies"
+        run: flutter pub get
+
       - name: "Set iOS Deployment Target"
         run: |
-          # This forces the Podfile to use iOS 14.0 so Firestore works
+          # This command creates the iOS folder/files if they are missing
+          flutter build ios --config-only
+          # Now we modify the Podfile once it exists
           sed -i '' "s/platform :ios, '13.0'/platform :ios, '14.0'/g" ios/Podfile
           sed -i '' "s/# platform :ios, '13.0'/platform :ios, '14.0'/g" ios/Podfile
-
-      - name: "Clean and Fetch"
-        run: |
-          flutter clean
-          flutter pub get
 
       - name: "Install CocoaPods"
         run: |
