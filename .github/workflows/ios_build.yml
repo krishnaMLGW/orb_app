@@ -15,16 +15,17 @@ jobs:
 
       - name: "Wipe and Rebuild Podfile"
         run: |
-          # 1. Delete the existing Podfile that is causing errors
+          # 1. Delete the problematic Podfile
           rm -rf ios/Podfile
           
-          # 2. Tell Flutter to recreate the iOS folder correctly for this Mac
+          # 2. Recreate the iOS native files for this Mac
           flutter create . --platforms ios
           
-          # 3. Add the iOS 15.0 requirement to the NEWLY created Podfile
+          # 3. Force the Podfile and Plist to iOS 15.0
           sed -i '' "s/platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
+          sed -i '' "s/13.0/15.0/g" ios/Runner/Info.plist
           
-          # 4. Force all pods to 15.0 using a direct injection
+          # 4. Inject the final Post-Install override
           echo "post_install do |installer|
             installer.pods_project.targets.each do |target|
               target.build_configurations.each do |config|
@@ -34,7 +35,8 @@ jobs:
           end" >> ios/Podfile
 
       - name: "Build iOS (No Sign)"
-        run: flutter build ios --release --no-codesign --deployment-target=15.0
+        # We removed the --deployment-target flag to fix the error 64
+        run: flutter build ios --release --no-codesign
 
       - name: "Create IPA Structure"
         run: |
