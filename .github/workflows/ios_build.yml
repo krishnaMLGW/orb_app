@@ -15,21 +15,28 @@ jobs:
 
       - name: "Prepare iOS Metadata"
         run: |
-          # Create the iOS files
+          # Create the iOS infrastructure
           flutter build ios --no-codesign --config-only
           
-          # Force the Podfile to iOS 15.0
-          sed -i '' "s/platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
-          sed -i '' "s/# platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
-          
-          # Add a failsafe to the Podfile to force all pods to iOS 15.0
-          echo "post_install do |installer|
+          # DELETE the old Podfile and write a fresh one forced to 15.0
+          rm -f ios/Podfile
+          cat <<PFE > ios/Podfile
+          platform :ios, '15.0'
+          use_frameworks!
+          use_modular_headers!
+
+          target 'Runner' do
+            flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+          end
+
+          post_install do |installer|
             installer.pods_project.targets.each do |target|
               target.build_configurations.each do |config|
                 config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
               end
             end
-          end" >> ios/Podfile
+          end
+          PFE
 
       - name: "Install CocoaPods"
         run: |
