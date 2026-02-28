@@ -1,6 +1,8 @@
-# This line is the missing piece!
-load File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'generated_config_unlock.rb') rescue nil
-load File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'podhelper.rb')
+# Safe load for Flutter logic
+flutter_install_all_ios_pods_file = File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'podhelper.rb')
+if File.exist?(flutter_install_all_ios_pods_file)
+  load flutter_install_all_ios_pods_file
+end
 
 platform :ios, '15.0'
 
@@ -8,12 +10,19 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  # Only run if the method was successfully loaded
+  if respond_to?(:flutter_install_all_ios_pods)
+    flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  end
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
+    # Safe call for additional settings
+    if respond_to?(:flutter_additional_ios_build_settings)
+      flutter_additional_ios_build_settings(target)
+    end
+    
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
     end
