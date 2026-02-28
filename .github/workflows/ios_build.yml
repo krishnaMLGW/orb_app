@@ -15,14 +15,21 @@ jobs:
 
       - name: "Prepare iOS Metadata"
         run: |
-          # This creates the necessary iOS files without checking for certificates
+          # Create the iOS files
           flutter build ios --no-codesign --config-only
           
-          # Now we modify the Podfile to iOS 14.0
-          if [ -f ios/Podfile ]; then
-            sed -i '' "s/platform :ios, '13.0'/platform :ios, '14.0'/g" ios/Podfile
-            sed -i '' "s/# platform :ios, '13.0'/platform :ios, '14.0'/g" ios/Podfile
-          fi
+          # Force the Podfile to iOS 15.0
+          sed -i '' "s/platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
+          sed -i '' "s/# platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
+          
+          # Add a failsafe to the Podfile to force all pods to iOS 15.0
+          echo "post_install do |installer|
+            installer.pods_project.targets.each do |target|
+              target.build_configurations.each do |config|
+                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+              end
+            end
+          end" >> ios/Podfile
 
       - name: "Install CocoaPods"
         run: |
@@ -31,8 +38,7 @@ jobs:
           cd ..
 
       - name: "Build iOS (No Sign)"
-        # We add the extra flag to ensure it doesn't look for a Team ID
-        run: flutter build ios --release --no-codesign --deployment-target=14.0
+        run: flutter build ios --release --no-codesign --deployment-target=15.0
 
       - name: "Create IPA Structure"
         run: |
