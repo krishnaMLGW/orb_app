@@ -10,18 +10,28 @@ jobs:
         with:
           channel: 'stable'
       
-      - name: "Install dependencies"
-        run: flutter pub get
+      - name: "Clean and Fetch"
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: "Install CocoaPods"
+        run: |
+          cd ios
+          pod install --repo-update
+          cd ..
 
       - name: "Build iOS (No Sign)"
+        # This handles the build and prevents the "Team ID" error
         run: flutter build ios --release --no-codesign
 
-      - name: "Convert to IPA"
+      - name: "Create IPA Structure"
         run: |
           mkdir -p Payload
-          mv build/ios/iphoneos/Runner.app Payload
-          zip -r OrbApp.ipa Payload
-
+          # This copies the actual app into the special Payload folder
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r -y OrbApp.ipa Payload
+          
       - name: "Upload the File"
         uses: actions/upload-artifact@v4
         with:
