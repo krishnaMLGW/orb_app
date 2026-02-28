@@ -13,35 +13,27 @@ jobs:
       - name: "Fetch Dependencies"
         run: flutter pub get
 
-      - name: "Force Generate Podfile"
+      - name: "Wipe and Rebuild Podfile"
         run: |
-          # 1. Generate the basic iOS files
-          flutter build ios --no-codesign --config-only
+          # 1. Delete the existing Podfile that is causing errors
+          rm -rf ios/Podfile
           
-          # 2. Delete the Dell-uploaded Podfile (it was causing errors)
-          rm -f ios/Podfile
+          # 2. Tell Flutter to recreate the iOS folder correctly for this Mac
+          flutter create . --platforms ios
           
-          # 3. Create a fresh, modern Podfile that uses the Cloud Mac's paths
-          cat <<PFE > ios/Podfile
-          platform :ios, '15.0'
-          use_frameworks!
-          use_modular_headers!
-
-          target 'Runner' do
-            # This is the 'safe' way to install pods without a helper
-          end
-
-          post_install do |installer|
+          # 3. Add the iOS 15.0 requirement to the NEWLY created Podfile
+          sed -i '' "s/platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
+          
+          # 4. Force all pods to 15.0 using a direct injection
+          echo "post_install do |installer|
             installer.pods_project.targets.each do |target|
               target.build_configurations.each do |config|
                 config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
               end
             end
-          end
-          PFE
+          end" >> ios/Podfile
 
       - name: "Build iOS (No Sign)"
-        # We use a clean build command that bypasses the need for the helper script
         run: flutter build ios --release --no-codesign --deployment-target=15.0
 
       - name: "Create IPA Structure"
