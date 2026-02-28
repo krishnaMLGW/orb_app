@@ -1,19 +1,6 @@
-# 1. This block finds where Flutter is installed on the Cloud Mac
-def flutter_root
-  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
-  unless File.exist?(generated_xcode_build_settings_path)
-    raise "#{generated_xcode_build_settings_path} must exist. Run 'flutter pub get' first"
-  end
-
-  File.foreach(generated_xcode_build_settings_path) do |line|
-    matches = line.match(/FLUTTER_ROOT\=(.*)/)
-    return matches[1].strip if matches
-  end
-  raise "FLUTTER_ROOT not found"
-end
-
-# 2. This line "plugs in" the Flutter tools so the commands below work
-require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+# The cloud Mac needs this path to understand Flutter commands
+flutter_install_all_ios_pods_file = File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'podhelper.rb')
+load flutter_install_all_ios_pods_file if File.exist?(flutter_install_all_ios_pods_file)
 
 platform :ios, '15.0'
 
@@ -21,7 +8,7 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # 3. Now the Mac will understand this command!
+  # This now works because we loaded the 'podhelper.rb' above
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
@@ -29,6 +16,7 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
+      # Forces all plugins to match our iOS 15.0 target
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
     end
   end
