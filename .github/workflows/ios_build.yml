@@ -13,29 +13,21 @@ jobs:
       - name: "Fetch Dependencies"
         run: flutter pub get
 
-      - name: "Wipe and Rebuild Podfile"
+      - name: "Wipe and Clean Build"
         run: |
-          # 1. Delete the problematic Podfile
+          # 1. Start fresh
           rm -rf ios/Podfile
-          
-          # 2. Recreate the iOS native files for this Mac
           flutter create . --platforms ios
           
-          # 3. Force the Podfile and Plist to iOS 15.0
+          # 2. Set the platform to 15.0 at the top
           sed -i '' "s/platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
-          sed -i '' "s/13.0/15.0/g" ios/Runner/Info.plist
           
-          # 4. Inject the final Post-Install override
-          echo "post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              target.build_configurations.each do |config|
-                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-              end
-            end
-          end" >> ios/Podfile
+          # 3. Inject the 15.0 target into the EXISTING post_install block
+          # This avoids the "multiple hooks" error by placing it inside Flutter's own block
+          sed -i '' "/flutter_additional_ios_build_settings(target)/a\
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'" ios/Podfile
 
       - name: "Build iOS (No Sign)"
-        # We removed the --deployment-target flag to fix the error 64
         run: flutter build ios --release --no-codesign
 
       - name: "Create IPA Structure"
