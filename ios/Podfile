@@ -1,6 +1,8 @@
-platform :ios, '15.0'
+# This line is the missing piece!
+load File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'generated_config_unlock.rb') rescue nil
+load File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'podhelper.rb')
 
-prepare_command = "node -e \"console.log('Preparing...')\""
+platform :ios, '15.0'
 
 target 'Runner' do
   use_frameworks!
