@@ -1,4 +1,3 @@
-cat <<EOF > .github/workflows/ios_build.yml
 name: "Orb iOS Build"
 on: [workflow_dispatch, push]
 
@@ -28,4 +27,3 @@ jobs:
         with:
           name: Orb-iPhone-App
           path: OrbApp.ipa
-EOF
