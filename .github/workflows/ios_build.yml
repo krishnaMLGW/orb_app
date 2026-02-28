@@ -10,6 +10,12 @@ jobs:
         with:
           channel: 'stable'
       
+      - name: "Set iOS Deployment Target"
+        run: |
+          # This forces the Podfile to use iOS 14.0 so Firestore works
+          sed -i '' "s/platform :ios, '13.0'/platform :ios, '14.0'/g" ios/Podfile
+          sed -i '' "s/# platform :ios, '13.0'/platform :ios, '14.0'/g" ios/Podfile
+
       - name: "Clean and Fetch"
         run: |
           flutter clean
@@ -22,13 +28,11 @@ jobs:
           cd ..
 
       - name: "Build iOS (No Sign)"
-        # This handles the build and prevents the "Team ID" error
-        run: flutter build ios --release --no-codesign
+        run: flutter build ios --release --no-codesign --deployment-target=14.0
 
       - name: "Create IPA Structure"
         run: |
           mkdir -p Payload
-          # This copies the actual app into the special Payload folder
           cp -r build/ios/iphoneos/Runner.app Payload/
           zip -r -y OrbApp.ipa Payload
           
