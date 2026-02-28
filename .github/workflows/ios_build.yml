@@ -13,13 +13,16 @@ jobs:
       - name: "Fetch Dependencies"
         run: flutter pub get
 
-      - name: "Set iOS Deployment Target"
+      - name: "Prepare iOS Metadata"
         run: |
-          # This command creates the iOS folder/files if they are missing
-          flutter build ios --config-only
-          # Now we modify the Podfile once it exists
-          sed -i '' "s/platform :ios, '13.0'/platform :ios, '14.0'/g" ios/Podfile
-          sed -i '' "s/# platform :ios, '13.0'/platform :ios, '14.0'/g" ios/Podfile
+          # This creates the necessary iOS files without checking for certificates
+          flutter build ios --no-codesign --config-only
+          
+          # Now we modify the Podfile to iOS 14.0
+          if [ -f ios/Podfile ]; then
+            sed -i '' "s/platform :ios, '13.0'/platform :ios, '14.0'/g" ios/Podfile
+            sed -i '' "s/# platform :ios, '13.0'/platform :ios, '14.0'/g" ios/Podfile
+          fi
 
       - name: "Install CocoaPods"
         run: |
@@ -28,6 +31,7 @@ jobs:
           cd ..
 
       - name: "Build iOS (No Sign)"
+        # We add the extra flag to ensure it doesn't look for a Team ID
         run: flutter build ios --release --no-codesign --deployment-target=14.0
 
       - name: "Create IPA Structure"
