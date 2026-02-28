@@ -1,8 +1,18 @@
-# Safe load for Flutter logic
-flutter_install_all_ios_pods_file = File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'podhelper.rb')
-if File.exist?(flutter_install_all_ios_pods_file)
-  load flutter_install_all_ios_pods_file
+# Standard Flutter logic for identifying the SDK path
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
 end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
 
 platform :ios, '15.0'
 
@@ -10,19 +20,13 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # Only run if the method was successfully loaded
-  if respond_to?(:flutter_install_all_ios_pods)
-    flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-  end
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
-    # Safe call for additional settings
-    if respond_to?(:flutter_additional_ios_build_settings)
-      flutter_additional_ios_build_settings(target)
-    end
-    
+    flutter_additional_ios_build_settings(target)
+    # The "Magic Bullet" to force every plugin to iOS 15.0
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
     end
