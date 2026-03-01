@@ -10,41 +10,45 @@ jobs:
         with:
           channel: 'stable'
       
-      - name: "Fresh Flutter Setup"
+      - name: "Clean Infrastructure Rebuild"
         run: |
           flutter pub get
-          # Delete the Podfile from Windows that is causing errors
           rm -rf ios/Podfile
-          # Force the Mac to create a native iOS project structure
           flutter create . --platforms ios
+          
+          # We overwrite the Podfile entirely with a single, clean version
+          cat <<PFE > ios/Podfile
+          platform :ios, '15.0'
 
-      - name: "Force iOS 15.0 Target"
-        run: |
-          # Use 'sed' to update the version in the newly generated Podfile
-          sed -i '' "s/platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
-          # Inject the post_install override to ensure every plugin uses 15.0
-          echo "post_install do |installer|
+          load File.join(ENV['FLUTTER_ROOT'], 'packages', 'flutter_tools', 'bin', 'podhelper.rb')
+
+          target 'Runner' do
+            use_frameworks!
+            use_modular_headers!
+            flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+          end
+
+          post_install do |installer|
             installer.pods_project.targets.each do |target|
               flutter_additional_ios_build_settings(target)
               target.build_configurations.each do |config|
+                # Forces the 15.0 target for every single plugin
                 config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
               end
             end
-          end" >> ios/Podfile
+          end
+          PFE
 
       - name: "Build App"
-        # We use --no-codesign because Sideloadly will handle signing on your Dell
         run: flutter build ios --release --no-codesign
 
-      - name: "Perfect Packaging"
+      - name: "Package for Sideloadly"
         run: |
           mkdir -p Payload
-          # Locate the app and copy it into the Payload folder
           cp -r build/ios/iphoneos/Runner.app Payload/
-          # Create the final IPA file
           zip -r -y OrbApp.ipa Payload
           
-      - name: "Upload Artifact"
+      - name: "Upload Final IPA"
         uses: actions/upload-artifact@v4
         with:
           name: Orb-Final-IPA
