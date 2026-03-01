@@ -41,15 +41,20 @@ jobs:
           PFE
 
       - name: "Build iOS (Ignore Signing)"
-        # We add 'continue-on-error' because we know it 'fails' only on signing
         continue-on-error: true
         run: flutter build ios --release --no-codesign
 
       - name: "Package IPA"
         run: |
           mkdir -p Payload
-          # This pulls the compiled app out of the build folder
-          cp -r build/ios/iphoneos/Runner.app Payload/
+          # Search for Runner.app in all build subdirectories to be safe
+          APP_PATH=$(find build/ios -name "Runner.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: Runner.app not found anywhere in build/ios"
+            exit 1
+          fi
+          echo "Found app at: $APP_PATH"
+          cp -r "$APP_PATH" Payload/
           zip -r -y OrbApp.ipa Payload
           
       - name: "Upload Artifact"
