@@ -6,59 +6,25 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true
-
-      - name: "Clean and Setup"
+      
+      - name: "Build"
         run: |
-          flutter clean
           flutter pub get
-          flutter create . --platforms ios
-
-      - name: "Force Official Podfile"
-        run: |
-          cat <<PFE > ios/Podfile
-          platform :ios, '15.0'
-          load File.join(ENV['FLUTTER_ROOT'], 'packages', 'flutter_tools', 'bin', 'podhelper.rb')
-          target 'Runner' do
-            use_frameworks!
-            use_modular_headers!
-            flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-          end
-          post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              flutter_additional_ios_build_settings(target)
-              target.build_configurations.each do |config|
-                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
-                config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-                config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
-              end
-            end
-          end
-          PFE
-
-      - name: "Build iOS (Ignore Signing)"
-        continue-on-error: true
-        run: flutter build ios --release --no-codesign
-
-      - name: "Package IPA"
+          flutter build ios --release --no-codesign
+          
+      - name: "Perfect Packaging"
         run: |
           mkdir -p Payload
-          # Search for Runner.app in all build subdirectories to be safe
-          APP_PATH=$(find build/ios -name "Runner.app" -type d | head -n 1)
-          if [ -z "$APP_PATH" ]; then
-            echo "Error: Runner.app not found anywhere in build/ios"
-            exit 1
-          fi
-          echo "Found app at: $APP_PATH"
-          cp -r "$APP_PATH" Payload/
+          # This specifically copies the app into the Payload folder
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          # This creates the zip so 'Payload' is the only thing at the top
           zip -r -y OrbApp.ipa Payload
           
-      - name: "Upload Artifact"
+      - name: "Upload"
         uses: actions/upload-artifact@v4
         with:
-          name: Orb-iPhone-App
+          name: Orb-Final-IPA
           path: OrbApp.ipa
