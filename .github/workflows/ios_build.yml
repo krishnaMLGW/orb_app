@@ -18,24 +18,21 @@ jobs:
           flutter pub get
           flutter create . --platforms ios
 
-      - name: "Inject Flutter Bridge"
+      - name: "Force Official Podfile"
         run: |
-          # This script finds the Flutter SDK path on the cloud Mac 
-          # and creates a Podfile that correctly 'requires' the Flutter podhelper
-          export FLUTTER_SDK_PATH=$(flutter doctor -v | grep "Flutter SDK at" | awk '{print $4}')
-          
+          # We overwrite the Podfile with the exact Ruby logic Flutter expects
           cat <<PFE > ios/Podfile
           platform :ios, '15.0'
-          
-          # This is the bridge to the Flutter tools
-          require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), "$FLUTTER_SDK_PATH")
-          
+
+          # This uses the environment variable provided by the flutter-action
+          load File.join(ENV['FLUTTER_ROOT'], 'packages', 'flutter_tools', 'bin', 'podhelper.rb')
+
           target 'Runner' do
             use_frameworks!
             use_modular_headers!
             flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
           end
-          
+
           post_install do |installer|
             installer.pods_project.targets.each do |target|
               flutter_additional_ios_build_settings(target)
