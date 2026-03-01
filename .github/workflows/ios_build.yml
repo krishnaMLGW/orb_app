@@ -10,20 +10,41 @@ jobs:
         with:
           channel: 'stable'
       
-      - name: "Build"
+      - name: "Fresh Flutter Setup"
         run: |
           flutter pub get
-          flutter build ios --release --no-codesign
-          
+          # Delete the Podfile from Windows that is causing errors
+          rm -rf ios/Podfile
+          # Force the Mac to create a native iOS project structure
+          flutter create . --platforms ios
+
+      - name: "Force iOS 15.0 Target"
+        run: |
+          # Use 'sed' to update the version in the newly generated Podfile
+          sed -i '' "s/platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
+          # Inject the post_install override to ensure every plugin uses 15.0
+          echo "post_install do |installer|
+            installer.pods_project.targets.each do |target|
+              flutter_additional_ios_build_settings(target)
+              target.build_configurations.each do |config|
+                config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+              end
+            end
+          end" >> ios/Podfile
+
+      - name: "Build App"
+        # We use --no-codesign because Sideloadly will handle signing on your Dell
+        run: flutter build ios --release --no-codesign
+
       - name: "Perfect Packaging"
         run: |
           mkdir -p Payload
-          # This specifically copies the app into the Payload folder
+          # Locate the app and copy it into the Payload folder
           cp -r build/ios/iphoneos/Runner.app Payload/
-          # This creates the zip so 'Payload' is the only thing at the top
+          # Create the final IPA file
           zip -r -y OrbApp.ipa Payload
           
-      - name: "Upload"
+      - name: "Upload Artifact"
         uses: actions/upload-artifact@v4
         with:
           name: Orb-Final-IPA
