@@ -6,37 +6,30 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-      
-      - name: "Fetch Dependencies"
-        run: flutter pub get
+          cache: true
 
-      - name: "Wipe and Clean Build"
+      - name: "Fresh Rebuild"
         run: |
-          # 1. Start fresh
-          rm -rf ios/Podfile
+          flutter clean
+          flutter pub get
+          # We create the project files fresh on the Mac so it doesn't use your local ones
           flutter create . --platforms ios
-          
-          # 2. Set the platform to 15.0 at the top
-          sed -i '' "s/platform :ios, '13.0'/platform :ios, '15.0'/g" ios/Podfile
-          
-          # 3. Inject the 15.0 target into the EXISTING post_install block
-          # This avoids the "multiple hooks" error by placing it inside Flutter's own block
-          sed -i '' "/flutter_additional_ios_build_settings(target)/a\
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'" ios/Podfile
 
-      - name: "Build iOS (No Sign)"
+      - name: "Build IPA"
+        # The key is to let Flutter handle the CocoaPods logic itself
         run: flutter build ios --release --no-codesign
 
-      - name: "Create IPA Structure"
+      - name: "Package for Sideloadly"
         run: |
           mkdir -p Payload
           cp -r build/ios/iphoneos/Runner.app Payload/
           zip -r -y OrbApp.ipa Payload
           
-      - name: "Upload the File"
+      - name: "Upload Result"
         uses: actions/upload-artifact@v4
         with:
           name: Orb-iPhone-App
